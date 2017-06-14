@@ -422,7 +422,7 @@
 				DEVELOPMENT_TEAM = KXWDJEL2WR;
 				INFOPLIST_FILE = TheDangerZone/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.NoahJSutter.TheDangerZone;
+				PRODUCT_BUNDLE_IDENTIFIER = com.NoahJSutter.TheDangerZones;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -436,7 +436,7 @@
 				DEVELOPMENT_TEAM = KXWDJEL2WR;
 				INFOPLIST_FILE = TheDangerZone/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.NoahJSutter.TheDangerZone;
+				PRODUCT_BUNDLE_IDENTIFIER = com.NoahJSutter.TheDangerZones;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = 1;
