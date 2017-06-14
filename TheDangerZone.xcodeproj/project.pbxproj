@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4F30611F1EF1CFAA0073A5EA /* Location.gpx in Resources */ = {isa = PBXBuildFile; fileRef = 4F30611E1EF1CFAA0073A5EA /* Location.gpx */; };
+		4F3061211EF1CFEB0073A5EA /* Location.gpx in Resources */ = {isa = PBXBuildFile; fileRef = 4F3061201EF1CFEB0073A5EA /* Location.gpx */; };
 		4FF0CA251EF16207005AE435 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FF0CA241EF16207005AE435 /* AppDelegate.swift */; };
 		4FF0CA271EF16207005AE435 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FF0CA261EF16207005AE435 /* ViewController.swift */; };
 		4FF0CA2A1EF16207005AE435 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4FF0CA281EF16207005AE435 /* Main.storyboard */; };
@@ -35,6 +37,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4F30611D1EF1CDC70073A5EA /* Location.gpx */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = Location.gpx; sourceTree = "<group>"; };
+		4F30611E1EF1CFAA0073A5EA /* Location.gpx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = Location.gpx; path = TheDangerZone/Location.gpx; sourceTree = "<group>"; };
+		4F3061201EF1CFEB0073A5EA /* Location.gpx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = Location.gpx; path = TheDangerZone/Location.gpx; sourceTree = "<group>"; };
 		4FF0CA211EF16207005AE435 /* TheDangerZone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TheDangerZone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FF0CA241EF16207005AE435 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		4FF0CA261EF16207005AE435 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -79,6 +84,8 @@
 		4FF0CA181EF16207005AE435 = {
 			isa = PBXGroup;
 			children = (
+				4F3061201EF1CFEB0073A5EA /* Location.gpx */,
+				4F30611E1EF1CFAA0073A5EA /* Location.gpx */,
 				4FF0CA231EF16207005AE435 /* TheDangerZone */,
 				4FF0CA3B1EF16207005AE435 /* TheDangerZoneTests */,
 				4FF0CA461EF16207005AE435 /* TheDangerZoneUITests */,
@@ -104,6 +111,7 @@
 				4FF0CA281EF16207005AE435 /* Main.storyboard */,
 				4FF0CA2E1EF16207005AE435 /* Assets.xcassets */,
 				4FF0CA301EF16207005AE435 /* LaunchScreen.storyboard */,
+				4F30611D1EF1CDC70073A5EA /* Location.gpx */,
 				4FF0CA331EF16207005AE435 /* Info.plist */,
 				4FF0CA2B1EF16207005AE435 /* TheDangerZone.xcdatamodeld */,
 			);
@@ -240,6 +248,8 @@
 			files = (
 				4FF0CA321EF16207005AE435 /* LaunchScreen.storyboard in Resources */,
 				4FF0CA2F1EF16207005AE435 /* Assets.xcassets in Resources */,
+				4F3061211EF1CFEB0073A5EA /* Location.gpx in Resources */,
+				4F30611F1EF1CFAA0073A5EA /* Location.gpx in Resources */,
 				4FF0CA2A1EF16207005AE435 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -520,6 +530,7 @@
 				4FF0CA4E1EF16207005AE435 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		4FF0CA4F1EF16207005AE435 /* Build configuration list for PBXNativeTarget "TheDangerZoneTests" */ = {
 			isa = XCConfigurationList;
@@ -528,6 +539,7 @@
 				4FF0CA511EF16207005AE435 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		4FF0CA521EF16207005AE435 /* Build configuration list for PBXNativeTarget "TheDangerZoneUITests" */ = {
 			isa = XCConfigurationList;
@@ -536,6 +548,7 @@
 				4FF0CA541EF16207005AE435 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 

@@ -8,19 +8,22 @@
 
 import UIKit
 import MapKit
+import AVFoundation
 
-class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDelegate {
+class ViewController: UIViewController, MKMapViewDelegate {
 
     @IBOutlet weak var mapView: MKMapView!
     @IBOutlet weak var instructionsText: UINavigationItem!
     
     
     
-    var manager = CLLocationManager()
+    var locationManager = CLLocationManager()
     var route :MKRoute = MKRoute()
     //var alternate1 :MKRoute = MKRoute()
     //var alternate2 :MKRoute = MKRoute()
     var center = CLLocationCoordinate2D()
+    var curr = 1
+    var madefar = false
     
     let dangers = [[40.847997130434784,-81.4343505652174,25.0],
                    [40.85489372222222,-81.43209894444445,21.0],
@@ -92,10 +95,15 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
     override func viewDidLoad() {
         super.viewDidLoad()
         //Setting up the location manager
-        manager.delegate = self
-        manager.desiredAccuracy = kCLLocationAccuracyBest
-        manager.requestWhenInUseAuthorization()
-        manager.startUpdatingLocation()
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        //self.manager.requestWhenInUseAuthorization()
+        locationManager.distanceFilter = 10  // Movement threshold for new events
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.requestAlwaysAuthorization() // allow in background
+        locationManager.startMonitoringSignificantLocationChanges()
+        locationManager.startUpdatingLocation() // start location manager
+            
         
         // Setting the Map Delegate
         mapView.delegate = self
@@ -175,6 +183,8 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
             
             // Updating current instruction
             self.instructionsText.title = self.route.steps[0].instructions
+            
+            
         }
         
         
@@ -191,7 +201,8 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
         
         if overlay as? MKPolyline  == self.route.polyline {
             let renderer = MKPolylineRenderer(overlay: overlay)
-            renderer.strokeColor = UIColor.red
+            renderer.strokeColor = UIColor(hue: 0.5694, saturation: 0.67, brightness: 0.97, alpha: 1.0) /* #51b2f7 */
+
             renderer.lineWidth = 4.0
             return renderer
         } /*else if overlay as? MKPolyline  == self.alternate1.polyline {
@@ -206,31 +217,60 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
             return renderer
         } */else {
             let circleView = MKCircleRenderer(overlay: overlay)
-            circleView.strokeColor = UIColor(red:0.93, green:0.65, blue:0.65, alpha:1.0)
-            circleView.fillColor = UIColor(red:0.93, green:0.65, blue:0.65, alpha:1.0);
+            circleView.strokeColor = UIColor(red:0.93, green:0.65, blue:0.65, alpha:0.3)
+            circleView.fillColor = UIColor(red:0.93, green:0.65, blue:0.65, alpha:0.7)
             return circleView;
         }
         return MKOverlayRenderer()
         
     }
-    
-    func locationManager(manager: CLLocationManager!, didUpdateLocations locations: [AnyObject]!) {
+    /*
+    func locationManager(locationManager: CLLocationManager!, didUpdateLocations locations: [AnyObject]!) {
+        print("Called" )
         let location = locations.last as! CLLocation
         self.center = CLLocationCoordinate2D(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
+        // Updating current instruction
+        let poly = self.route.steps[self.curr].polyline
+        var coordsPointer = UnsafeMutablePointer<CLLocationCoordinate2D>.allocate(capacity: poly.pointCount)
+        let point = coordsPointer[0]
+        coordsPointer.deallocate(capacity: poly.pointCount)
         
+        let location2 = CLLocation(latitude: point.latitude, longitude: point.longitude)
+        print(location2)
+        if  location.distance(from: location2) < 100 {
+            self.instructionsText.title = self.route.steps[self.curr].instructions
+            curr+=1
+        }
         //let region = MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))
         
         //self.mapView.setRegion(region, animated: true)
     }
     
+    
+    */
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     func getDangerZones(route:MKRoute) {
         //getting the coordinates in the polyline
         let poly = route.polyline
         /*
-        var coords: [CLLocationCoordinate2D] = []
-        coords.reserveCapacity(poly.pointCount)
-        poly.getCoordinates(&coords, range: NSMakeRange(0, poly.pointCount))
- */
+         var coords: [CLLocationCoordinate2D] = []
+         coords.reserveCapacity(poly.pointCount)
+         poly.getCoordinates(&coords, range: NSMakeRange(0, poly.pointCount))
+         */
         var coordsPointer = UnsafeMutablePointer<CLLocationCoordinate2D>.allocate(capacity: poly.pointCount)
         poly.getCoordinates(coordsPointer, range: NSMakeRange(0, poly.pointCount))
         var coords: [CLLocationCoordinate2D] = []
@@ -251,17 +291,12 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
             let hDist = MKMetersBetweenMapPoints(mpTopLeft, mpTopRight);
             let converter = hDist/width
             for point in coords {
-                print("poimt")
-                print(converter)
-                let curRect = MKMapRect(origin: MKMapPointForCoordinate(pos), size: MKMapSize(width: (50 / converter),height: (50 / converter)))
+                let curRect = MKMapRect(origin: MKMapPointForCoordinate(pos), size: MKMapSize(width: (100 / converter),height: (100 / converter)))
                 if !first {
-                    print("here")
                     let points = [prevCoord, point]
                     let testPoly = MKPolyline(coordinates: points, count: points.count)
-                    print(testPoly)
                     if testPoly.intersects(curRect){
                         self.mapView.add(MKCircle(center: pos, radius: 50))
-                        print("intersects")
                     }
                 } else {
                     first = false
@@ -275,37 +310,108 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
     
     
     func Distance(x:Double, y:Double, x1:Double, y1:Double, x2:Double, y2:Double) -> Double {
+        
+        let A = x - x1
+        let B = y - y1
+        let C = x2 - x1
+        let D = y2 - y1
+        
+        let dot = A * C + B * D
+        let len_sq = C * C + D * D
+        var param = -1.0
+        if (len_sq != 0) { //in case of 0 length line
+            param = dot / len_sq
+        }
+        var xx = 0.0, yy = 0.0
+        
+        if (param < 0) {
+            xx = x1
+            yy = y1
+        }
+        else if (param > 1) {
+            xx = x2
+            yy = y2
+        }
+        else {
+            xx = x1 + param * C
+            yy = y1 + param * D
+        }
+        
+        let dx = x - xx
+        let dy = y - yy
+        return (dx * dx + dy * dy).squareRoot()
+    }
     
-    let A = x - x1
-    let B = y - y1
-    let C = x2 - x1
-    let D = y2 - y1
-    
-    let dot = A * C + B * D
-    let len_sq = C * C + D * D
-    var param = -1.0
-    if (len_sq != 0) { //in case of 0 length line
-        param = dot / len_sq
-    }
-    var xx = 0.0, yy = 0.0
-    
-    if (param < 0) {
-    xx = x1
-    yy = y1
-    }
-    else if (param > 1) {
-    xx = x2
-    yy = y2
-    }
-    else {
-    xx = x1 + param * C
-    yy = y1 + param * D
-    }
-    
-    let dx = x - xx
-    let dy = y - yy
-    return (dx * dx + dy * dy).squareRoot()
-    }
-
 }
 
+
+    
+    
+extension ViewController: CLLocationManagerDelegate {
+    // Location Manager Delegate stuff
+    // If failed
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        locationManager.stopUpdatingLocation()
+        NSLog("locationManager:didFailWithError")
+        print(error)
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        let location = locations.last
+        self.center = CLLocationCoordinate2D(latitude: (location?.coordinate.latitude)!, longitude: (location?.coordinate.longitude)!)
+        // Updating current instruction
+        if self.route.steps.count > self.curr {
+        let poly = self.route.steps[self.curr].polyline
+        var coordsPointer = UnsafeMutablePointer<CLLocationCoordinate2D>.allocate(capacity: poly.pointCount)
+        poly.getCoordinates(coordsPointer, range: NSMakeRange(0, poly.pointCount))
+        var coords: [CLLocationCoordinate2D] = []
+        for i in 0..<poly.pointCount {
+            coords.append(coordsPointer[i])
+        }
+        coordsPointer.deallocate(capacity: poly.pointCount)
+        let point = coords[0]
+        let location2 = CLLocation(latitude: point.latitude, longitude: point.longitude)
+        if  Int((location?.distance(from: location2))!) < 15 {
+            self.madefar = true
+        } else if madefar {
+            let synthesizer = AVSpeechSynthesizer()
+            let utterance = AVSpeechUtterance(string: self.instructionsText.title!)
+            utterance.rate = 0.2
+            synthesizer.speak(utterance)
+            self.instructionsText.title = self.route.steps[self.curr].instructions
+            curr+=1
+            self.madefar = false
+            }
+        }
+    }
+
+    // authorization status
+    func locationManager(manager: CLLocationManager,
+                         didChangeAuthorizationStatus status: CLAuthorizationStatus) {
+        var shouldIAllow = false
+        var location_status = ""
+        switch status {
+        case CLAuthorizationStatus.restricted:
+            location_status = "Restricted Access to location"
+        case CLAuthorizationStatus.denied:
+            location_status = "User denied access to location"
+        case CLAuthorizationStatus.notDetermined:
+            location_status = "Status not determined"
+        default:
+            location_status = "Allowed to location Access"
+            shouldIAllow = true
+        }
+        NotificationCenter.default.post(name: NSNotification.Name(rawValue: "LabelHasbeenUpdated"), object: nil)
+        if (shouldIAllow == true) {
+            NSLog("Location to Allowed")
+            // Start location services
+            manager.startMonitoringSignificantLocationChanges()
+            locationManager.startMonitoringSignificantLocationChanges()
+        } else {
+            NSLog("Denied access: \(location_status)")
+        }
+    }
+    }
+    
+    
+    
