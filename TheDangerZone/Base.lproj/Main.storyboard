@@ -9,7 +9,7 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
-        <!--Danger Zones-->
+        <!--Loading...-->
         <scene sceneID="tne-QT-ifu">
             <objects>
                 <viewController id="BYZ-38-t0r" customClass="ViewController" customModule="TheDangerZone" customModuleProvider="target" sceneMemberID="viewController">
@@ -33,8 +33,9 @@
                             <constraint firstItem="wfy-db-euE" firstAttribute="top" secondItem="Agd-6M-JMm" secondAttribute="bottom" id="tye-Nf-05q"/>
                         </constraints>
                     </view>
-                    <navigationItem key="navigationItem" title="Danger Zones" id="i3R-bG-g6V"/>
+                    <navigationItem key="navigationItem" title="Loading..." id="i3R-bG-g6V"/>
                     <connections>
+                        <outlet property="instructionsText" destination="i3R-bG-g6V" id="kRU-SR-x3f"/>
                         <outlet property="mapView" destination="Agd-6M-JMm" id="Cdb-4C-AOX"/>
                     </connections>
                 </viewController>

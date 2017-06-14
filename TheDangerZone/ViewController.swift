@@ -9,83 +9,104 @@
 import UIKit
 import MapKit
 
-class ViewController: UIViewController, MKMapViewDelegate {
+class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDelegate {
 
     @IBOutlet weak var mapView: MKMapView!
+    @IBOutlet weak var instructionsText: UINavigationItem!
     
     
+    
+    var manager = CLLocationManager()
+    var route :MKRoute = MKRoute()
+    var alternate1 :MKRoute = MKRoute()
+    var alternate2 :MKRoute = MKRoute()
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        //Setting up the location manager
+        manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+        manager.requestWhenInUseAuthorization()
+        manager.startUpdatingLocation()
         
-        // 1.
+        // Setting the Map Delegate
         mapView.delegate = self
         
-        // 2.
-        let sourceLocation = CLLocationCoordinate2D(latitude: 40.759011, longitude: -73.984472)
-        let destinationLocation = CLLocationCoordinate2D(latitude: 40.748441, longitude: -73.985564)
+        // Adding the source and destination locations
+        let sourceLocation = CLLocationCoordinate2D(latitude: 40.877243, longitude: -81.410538)
+        let destinationLocation = CLLocationCoordinate2D(latitude: 40.848874, longitude: -81.433845)
         
-        // 3.
+        // Placemarks
         let sourcePlacemark = MKPlacemark(coordinate: sourceLocation, addressDictionary: nil)
         let destinationPlacemark = MKPlacemark(coordinate: destinationLocation, addressDictionary: nil)
         
-        // 4.
+        // Map Items
         let sourceMapItem = MKMapItem(placemark: sourcePlacemark)
         let destinationMapItem = MKMapItem(placemark: destinationPlacemark)
         
-        // 5.
+        // Annotations
         let sourceAnnotation = MKPointAnnotation()
-        sourceAnnotation.title = "Times Square"
+        sourceAnnotation.title = "Start Location"
         
         if let location = sourcePlacemark.location {
             sourceAnnotation.coordinate = location.coordinate
         }
         
-        
         let destinationAnnotation = MKPointAnnotation()
-        destinationAnnotation.title = "Empire State Building"
+        destinationAnnotation.title = "Destination"
         
         if let location = destinationPlacemark.location {
             destinationAnnotation.coordinate = location.coordinate
         }
         
-        // 6.
+        // Adding the annotations to the map
         self.mapView.showAnnotations([sourceAnnotation,destinationAnnotation], animated: true )
         
-        // 7.
+        // Requesting the directions
         let directionRequest = MKDirectionsRequest()
         directionRequest.source = sourceMapItem
         directionRequest.destination = destinationMapItem
         directionRequest.transportType = .automobile
-        
-        // Calculate the direction
+        directionRequest.requestsAlternateRoutes = true
         let directions = MKDirections(request: directionRequest)
         
-        // 8.
+        // Displaying the initial directions and instructions
         directions.calculate {
             (response, error) -> Void in
             
+            //Checking for error
             guard let response = response else {
                 if let error = error {
                     print("Error: \(error)")
                 }
-                
                 return
             }
             
-            let route = response.routes[0]
-            self.mapView.add((route.polyline), level: MKOverlayLevel.aboveRoads)
-
-            for step in route.steps {
-                print(step.instructions)
-            }
+            // Getting and setting the route
+            let routes = response.routes
+            self.route = routes[0]
+            self.alternate1 = routes[1]
+            self.alternate2 = routes[2]
             
-            let rect = route.polyline.boundingMapRect
+            self.mapView.add((self.route.polyline), level: MKOverlayLevel.aboveRoads)
+            self.mapView.add((self.alternate1.polyline), level: MKOverlayLevel.aboveRoads)
+            self.mapView.add((self.alternate2.polyline), level: MKOverlayLevel.aboveRoads)
             
+            // Getting the boundingMapObject and creating a region from it
+            let rect = self.route.polyline.boundingMapRect
             var region = MKCoordinateRegionForMapRect(rect);
-            region.span.latitudeDelta *= 1.2;   // Increase span by 20% to add some margin
+            
+            // Enlarging the region
+            region.span.latitudeDelta *= 1.2;
             region.span.longitudeDelta *= 1.2;
+            
+            // Setting the region
             self.mapView.setRegion(region, animated: true)
+            
+            self.mapView.showsUserLocation = true
+            
+            // Updating current instruction
+            self.instructionsText.title = self.route.steps[0].instructions
         }
         
         
@@ -100,10 +121,19 @@ class ViewController: UIViewController, MKMapViewDelegate {
 
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
         let renderer = MKPolylineRenderer(overlay: overlay)
-        renderer.strokeColor = UIColor.red
-        renderer.lineWidth = 4.0
-        
+        if overlay as? MKPolyline  == self.route.polyline {
+            renderer.strokeColor = UIColor.red
+            renderer.lineWidth = 4.0
+        } else if overlay as? MKPolyline  == self.alternate1.polyline {
+            renderer.strokeColor = UIColor.blue
+            renderer.lineWidth = 4.0
+        } else if overlay as? MKPolyline  == self.alternate2.polyline {
+            renderer.strokeColor = UIColor.green
+            renderer.lineWidth = 4.0
+            
+        }
         return renderer
+        
     }
     
     func locationManager(manager: CLLocationManager!, didUpdateLocations locations: [AnyObject]!) {
