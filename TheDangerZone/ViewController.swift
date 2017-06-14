@@ -18,8 +18,8 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
     
     var manager = CLLocationManager()
     var route :MKRoute = MKRoute()
-    var alternate1 :MKRoute = MKRoute()
-    var alternate2 :MKRoute = MKRoute()
+    //var alternate1 :MKRoute = MKRoute()
+    //var alternate2 :MKRoute = MKRoute()
     var center = CLLocationCoordinate2D()
     
     let dangers = [[40.847997130434784,-81.4343505652174,25.0],
@@ -91,7 +91,6 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         //Setting up the location manager
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBest
@@ -136,9 +135,8 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
         directionRequest.source = sourceMapItem
         directionRequest.destination = destinationMapItem
         directionRequest.transportType = .automobile
-        directionRequest.requestsAlternateRoutes = true
+        //directionRequest.requestsAlternateRoutes = true
         let directions = MKDirections(request: directionRequest)
-        
         // Displaying the initial directions and instructions
         directions.calculate {
             (response, error) -> Void in
@@ -150,16 +148,16 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
                 }
                 return
             }
-            
             // Getting and setting the route
             let routes = response.routes
             self.route = routes[0]
-            self.alternate1 = routes[1]
-            self.alternate2 = routes[2]
+            //self.alternate1 = routes[1]
+            //self.alternate2 = routes[2]
             
             self.mapView.add((self.route.polyline), level: MKOverlayLevel.aboveRoads)
-            self.mapView.add((self.alternate1.polyline), level: MKOverlayLevel.aboveRoads)
-            self.mapView.add((self.alternate2.polyline), level: MKOverlayLevel.aboveRoads)
+            //self.mapView.add((self.alternate1.polyline), level: MKOverlayLevel.aboveRoads)
+            //self.mapView.add((self.alternate2.polyline), level: MKOverlayLevel.aboveRoads)
+
             
             // Getting the boundingMapObject and creating a region from it
             let rect = self.route.polyline.boundingMapRect
@@ -173,7 +171,6 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
             self.mapView.setRegion(region, animated: true)
             
             self.mapView.showsUserLocation = true
-            
             self.getDangerZones(route: self.route)
             
             // Updating current instruction
@@ -191,19 +188,29 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
     }
 
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-        let renderer = MKPolylineRenderer(overlay: overlay)
+        
         if overlay as? MKPolyline  == self.route.polyline {
+            let renderer = MKPolylineRenderer(overlay: overlay)
             renderer.strokeColor = UIColor.red
             renderer.lineWidth = 4.0
-        } else if overlay as? MKPolyline  == self.alternate1.polyline {
+            return renderer
+        } /*else if overlay as? MKPolyline  == self.alternate1.polyline {
+            let renderer = MKPolylineRenderer(overlay: overlay)
             renderer.strokeColor = UIColor.blue
             renderer.lineWidth = 4.0
+            return renderer
         } else if overlay as? MKPolyline  == self.alternate2.polyline {
+            let renderer = MKPolylineRenderer(overlay: overlay)
             renderer.strokeColor = UIColor.green
             renderer.lineWidth = 4.0
-            
+            return renderer
+        } */else {
+            let circleView = MKCircleRenderer(overlay: overlay)
+            circleView.strokeColor = UIColor(red:0.93, green:0.65, blue:0.65, alpha:1.0)
+            circleView.fillColor = UIColor(red:0.93, green:0.65, blue:0.65, alpha:1.0);
+            return circleView;
         }
-        return renderer
+        return MKOverlayRenderer()
         
     }
     
@@ -219,18 +226,51 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
     func getDangerZones(route:MKRoute) {
         //getting the coordinates in the polyline
         let poly = route.polyline
+        /*
         var coords: [CLLocationCoordinate2D] = []
         coords.reserveCapacity(poly.pointCount)
-        route.polyline.getCoordinates(&coords, range: NSMakeRange(0, poly.pointCount))
-        
-        let curRect = MKMapRect(origin: MKMapPointForCoordinate(self.center), size: MKMapSize(width: 50,height: 50))
-        var count = 0
-        for pos in coords {
-            if poly.intersects(curRect) {
-                count+=1
-                print(count)
+        poly.getCoordinates(&coords, range: NSMakeRange(0, poly.pointCount))
+ */
+        var coordsPointer = UnsafeMutablePointer<CLLocationCoordinate2D>.allocate(capacity: poly.pointCount)
+        poly.getCoordinates(coordsPointer, range: NSMakeRange(0, poly.pointCount))
+        var coords: [CLLocationCoordinate2D] = []
+        for i in 0..<poly.pointCount {
+            coords.append(coordsPointer[i])
+        }
+        coordsPointer.deallocate(capacity: poly.pointCount)
+        for zone in dangers {
+            let pos = CLLocationCoordinate2D(latitude: zone[0],longitude: zone[1])
+            var prevCoord = CLLocationCoordinate2D()
+            var first = true
+            let mpTopLeft = mapView.visibleMapRect.origin;
+            
+            let mpTopRight = MKMapPointMake(
+                mapView.visibleMapRect.origin.x + mapView.visibleMapRect.size.width,
+                mapView.visibleMapRect.origin.y);
+            let width = mapView.visibleMapRect.size.width
+            let hDist = MKMetersBetweenMapPoints(mpTopLeft, mpTopRight);
+            let converter = hDist/width
+            for point in coords {
+                print("poimt")
+                print(converter)
+                let curRect = MKMapRect(origin: MKMapPointForCoordinate(pos), size: MKMapSize(width: (50 / converter),height: (50 / converter)))
+                if !first {
+                    print("here")
+                    let points = [prevCoord, point]
+                    let testPoly = MKPolyline(coordinates: points, count: points.count)
+                    print(testPoly)
+                    if testPoly.intersects(curRect){
+                        self.mapView.add(MKCircle(center: pos, radius: 50))
+                        print("intersects")
+                    }
+                } else {
+                    first = false
+                }
+                prevCoord = point
+                //if Distance(x: pos.latitude, y: pos.longitude, x1: <#T##Double#>, y1: <#T##Double#>, x2: <#T##Double#>, y2: <#T##Double#>)
             }
         }
+        print("done")
     }
     
     
