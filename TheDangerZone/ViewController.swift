@@ -19,11 +19,14 @@ class ViewController: UIViewController, MKMapViewDelegate {
     
     var locationManager = CLLocationManager()
     var route :MKRoute = MKRoute()
-    //var alternate1 :MKRoute = MKRoute()
-    //var alternate2 :MKRoute = MKRoute()
+    var alternate1 :MKRoute = MKRoute()
+    var alternate2 :MKRoute = MKRoute()
+    var safestRoute :MKRoute = MKRoute()
     var center = CLLocationCoordinate2D()
     var curr = 1
     var madefar = false
+    var zonesOnRoute:[CLLocationCoordinate2D] = []
+    var zonesOnRouteClosing:[Bool] = []
     
     let dangers = [[40.847997130434784,-81.4343505652174,25.0],
                    [40.85489372222222,-81.43209894444445,21.0],
@@ -94,16 +97,15 @@ class ViewController: UIViewController, MKMapViewDelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         //Setting up the location manager
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        //self.manager.requestWhenInUseAuthorization()
-        locationManager.distanceFilter = 10  // Movement threshold for new events
+        locationManager.distanceFilter = 10
         locationManager.requestWhenInUseAuthorization()
-        locationManager.requestAlwaysAuthorization() // allow in background
+        locationManager.requestAlwaysAuthorization()
         locationManager.startMonitoringSignificantLocationChanges()
-        locationManager.startUpdatingLocation() // start location manager
-            
+        locationManager.startUpdatingLocation()
         
         // Setting the Map Delegate
         mapView.delegate = self
@@ -123,14 +125,11 @@ class ViewController: UIViewController, MKMapViewDelegate {
         // Annotations
         let sourceAnnotation = MKPointAnnotation()
         sourceAnnotation.title = "Start Location"
-        
         if let location = sourcePlacemark.location {
             sourceAnnotation.coordinate = location.coordinate
         }
-        
         let destinationAnnotation = MKPointAnnotation()
         destinationAnnotation.title = "Destination"
-        
         if let location = destinationPlacemark.location {
             destinationAnnotation.coordinate = location.coordinate
         }
@@ -143,28 +142,52 @@ class ViewController: UIViewController, MKMapViewDelegate {
         directionRequest.source = sourceMapItem
         directionRequest.destination = destinationMapItem
         directionRequest.transportType = .automobile
-        //directionRequest.requestsAlternateRoutes = true
+        directionRequest.requestsAlternateRoutes = true
         let directions = MKDirections(request: directionRequest)
+        
         // Displaying the initial directions and instructions
         directions.calculate {
             (response, error) -> Void in
             
-            //Checking for error
+            // Checking for error
             guard let response = response else {
                 if let error = error {
                     print("Error: \(error)")
                 }
                 return
             }
+            
             // Getting and setting the route
             let routes = response.routes
             self.route = routes[0]
-            //self.alternate1 = routes[1]
-            //self.alternate2 = routes[2]
+            self.alternate1 = routes[1]
+            self.alternate2 = routes[2]
+            
+            let score0 = self.getDangerScore(route: self.route)
+            print(score0)
+            let score1 = self.getDangerScore(route: self.alternate1)
+            print(score1)
+            let score2 = self.getDangerScore(route: self.alternate2)
+            print(score2)
+            
+            
+            if score0 <= score1 {
+                if score0 <= score2 {
+                    //Route = route
+                } else {
+                    self.safestRoute = self.alternate2
+                }
+            } else {
+                if score1 <= score2 {
+                    self.safestRoute = self.alternate1
+                } else {
+                    self.safestRoute = self.alternate2
+                }
+            }
             
             self.mapView.add((self.route.polyline), level: MKOverlayLevel.aboveRoads)
-            //self.mapView.add((self.alternate1.polyline), level: MKOverlayLevel.aboveRoads)
-            //self.mapView.add((self.alternate2.polyline), level: MKOverlayLevel.aboveRoads)
+            self.mapView.add((self.alternate1.polyline), level: MKOverlayLevel.aboveRoads)
+            self.mapView.add((self.alternate2.polyline), level: MKOverlayLevel.aboveRoads)
 
             
             // Getting the boundingMapObject and creating a region from it
@@ -178,27 +201,22 @@ class ViewController: UIViewController, MKMapViewDelegate {
             // Setting the region
             self.mapView.setRegion(region, animated: true)
             
+            // Show the current locatoin
             self.mapView.showsUserLocation = true
             self.getDangerZones(route: self.route)
             
             // Updating current instruction
             self.instructionsText.title = self.route.steps[0].instructions
-            
-            
         }
-        
-        
-        
-        
     }
-
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
 
+    // Rendering the overlays
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-        
+        //Rendering the main line
         if overlay as? MKPolyline  == self.route.polyline {
             let renderer = MKPolylineRenderer(overlay: overlay)
             renderer.strokeColor = UIColor(hue: 0.5694, saturation: 0.67, brightness: 0.97, alpha: 1.0) /* #51b2f7 */
@@ -215,69 +233,31 @@ class ViewController: UIViewController, MKMapViewDelegate {
             renderer.strokeColor = UIColor.green
             renderer.lineWidth = 4.0
             return renderer
-        } */else {
+        } */
+        //Rendering the circles
+        else {
             let circleView = MKCircleRenderer(overlay: overlay)
             circleView.strokeColor = UIColor(red:0.93, green:0.65, blue:0.65, alpha:0.3)
             circleView.fillColor = UIColor(red:0.93, green:0.65, blue:0.65, alpha:0.7)
             return circleView;
         }
-        return MKOverlayRenderer()
-        
     }
-    /*
-    func locationManager(locationManager: CLLocationManager!, didUpdateLocations locations: [AnyObject]!) {
-        print("Called" )
-        let location = locations.last as! CLLocation
-        self.center = CLLocationCoordinate2D(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
-        // Updating current instruction
-        let poly = self.route.steps[self.curr].polyline
-        var coordsPointer = UnsafeMutablePointer<CLLocationCoordinate2D>.allocate(capacity: poly.pointCount)
-        let point = coordsPointer[0]
-        coordsPointer.deallocate(capacity: poly.pointCount)
-        
-        let location2 = CLLocation(latitude: point.latitude, longitude: point.longitude)
-        print(location2)
-        if  location.distance(from: location2) < 100 {
-            self.instructionsText.title = self.route.steps[self.curr].instructions
-            curr+=1
-        }
-        //let region = MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))
-        
-        //self.mapView.setRegion(region, animated: true)
-    }
+
     
-    
-    */
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    // Calculates what danger zones are on the route
     func getDangerZones(route:MKRoute) {
-        //getting the coordinates in the polyline
+        
+        // Getting the coordinates in the polyline
         let poly = route.polyline
-        /*
-         var coords: [CLLocationCoordinate2D] = []
-         coords.reserveCapacity(poly.pointCount)
-         poly.getCoordinates(&coords, range: NSMakeRange(0, poly.pointCount))
-         */
-        var coordsPointer = UnsafeMutablePointer<CLLocationCoordinate2D>.allocate(capacity: poly.pointCount)
+        let coordsPointer = UnsafeMutablePointer<CLLocationCoordinate2D>.allocate(capacity: poly.pointCount)
         poly.getCoordinates(coordsPointer, range: NSMakeRange(0, poly.pointCount))
         var coords: [CLLocationCoordinate2D] = []
         for i in 0..<poly.pointCount {
             coords.append(coordsPointer[i])
         }
         coordsPointer.deallocate(capacity: poly.pointCount)
+        
+        // Calculating which zones are on the route
         for zone in dangers {
             let pos = CLLocationCoordinate2D(latitude: zone[0],longitude: zone[1])
             var prevCoord = CLLocationCoordinate2D()
@@ -288,7 +268,7 @@ class ViewController: UIViewController, MKMapViewDelegate {
                 mapView.visibleMapRect.origin.x + mapView.visibleMapRect.size.width,
                 mapView.visibleMapRect.origin.y);
             let width = mapView.visibleMapRect.size.width
-            let hDist = MKMetersBetweenMapPoints(mpTopLeft, mpTopRight);
+            let hDist = MKMetersBetweenMapPoints(mpTopLeft, mpTopRight)
             let converter = hDist/width
             for point in coords {
                 let curRect = MKMapRect(origin: MKMapPointForCoordinate(pos), size: MKMapSize(width: (100 / converter),height: (100 / converter)))
@@ -297,120 +277,118 @@ class ViewController: UIViewController, MKMapViewDelegate {
                     let testPoly = MKPolyline(coordinates: points, count: points.count)
                     if testPoly.intersects(curRect){
                         self.mapView.add(MKCircle(center: pos, radius: 50))
+                        zonesOnRoute.append(pos)
+                        zonesOnRouteClosing.append(false)
                     }
                 } else {
                     first = false
                 }
                 prevCoord = point
-                //if Distance(x: pos.latitude, y: pos.longitude, x1: <#T##Double#>, y1: <#T##Double#>, x2: <#T##Double#>, y2: <#T##Double#>)
             }
         }
-        print("done")
     }
     
     
-    func Distance(x:Double, y:Double, x1:Double, y1:Double, x2:Double, y2:Double) -> Double {
+    // Calculates how dangerous a route is
+    func getDangerScore(route:MKRoute) -> Double {
         
-        let A = x - x1
-        let B = y - y1
-        let C = x2 - x1
-        let D = y2 - y1
-        
-        let dot = A * C + B * D
-        let len_sq = C * C + D * D
-        var param = -1.0
-        if (len_sq != 0) { //in case of 0 length line
-            param = dot / len_sq
-        }
-        var xx = 0.0, yy = 0.0
-        
-        if (param < 0) {
-            xx = x1
-            yy = y1
-        }
-        else if (param > 1) {
-            xx = x2
-            yy = y2
-        }
-        else {
-            xx = x1 + param * C
-            yy = y1 + param * D
-        }
-        
-        let dx = x - xx
-        let dy = y - yy
-        return (dx * dx + dy * dy).squareRoot()
-    }
-    
-}
-
-
-    
-    
-extension ViewController: CLLocationManagerDelegate {
-    // Location Manager Delegate stuff
-    // If failed
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        locationManager.stopUpdatingLocation()
-        NSLog("locationManager:didFailWithError")
-        print(error)
-    }
-    
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        let location = locations.last
-        self.center = CLLocationCoordinate2D(latitude: (location?.coordinate.latitude)!, longitude: (location?.coordinate.longitude)!)
-        // Updating current instruction
-        if self.route.steps.count > self.curr {
-        let poly = self.route.steps[self.curr].polyline
-        var coordsPointer = UnsafeMutablePointer<CLLocationCoordinate2D>.allocate(capacity: poly.pointCount)
+        // Getting the coordinates in the polyline
+        let poly = route.polyline
+        let coordsPointer = UnsafeMutablePointer<CLLocationCoordinate2D>.allocate(capacity: poly.pointCount)
         poly.getCoordinates(coordsPointer, range: NSMakeRange(0, poly.pointCount))
         var coords: [CLLocationCoordinate2D] = []
         for i in 0..<poly.pointCount {
             coords.append(coordsPointer[i])
         }
         coordsPointer.deallocate(capacity: poly.pointCount)
-        let point = coords[0]
-        let location2 = CLLocation(latitude: point.latitude, longitude: point.longitude)
-        if  Int((location?.distance(from: location2))!) < 15 {
-            self.madefar = true
-        } else if madefar {
-            let synthesizer = AVSpeechSynthesizer()
-            let utterance = AVSpeechUtterance(string: self.instructionsText.title!)
-            utterance.rate = 0.2
-            synthesizer.speak(utterance)
-            self.instructionsText.title = self.route.steps[self.curr].instructions
-            curr+=1
-            self.madefar = false
+        
+        var score = 0.0
+        
+        // Calculating which zones are on the route and getting their scores
+        for zone in dangers {
+            let pos = CLLocationCoordinate2D(latitude: zone[0],longitude: zone[1])
+            var prevCoord = CLLocationCoordinate2D()
+            var first = true
+            let mpTopLeft = mapView.visibleMapRect.origin;
+            
+            let mpTopRight = MKMapPointMake(
+                mapView.visibleMapRect.origin.x + mapView.visibleMapRect.size.width,
+                mapView.visibleMapRect.origin.y);
+            let width = mapView.visibleMapRect.size.width
+            let hDist = MKMetersBetweenMapPoints(mpTopLeft, mpTopRight)
+            let converter = hDist/width
+            for point in coords {
+                let curRect = MKMapRect(origin: MKMapPointForCoordinate(pos), size: MKMapSize(width: (100 / converter),height: (100 / converter)))
+                if !first {
+                    let points = [prevCoord, point]
+                    let testPoly = MKPolyline(coordinates: points, count: points.count)
+                    if testPoly.intersects(curRect){
+                        score+=zone[2]
+                    }
+                } else {
+                    first = false
+                }
+                prevCoord = point
+            }
+        }
+        return score
+    }
+}
+
+
+// Location Manager Functions
+extension ViewController: CLLocationManagerDelegate {
+    // Handling location manager falling
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        locationManager.stopUpdatingLocation()
+        NSLog("locationManager:didFailWithError")
+    }
+    
+    // Handling when the location is updated
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        // Setting
+        let location = locations.last
+        //
+        self.center = CLLocationCoordinate2D(latitude: (location?.coordinate.latitude)!, longitude: (location?.coordinate.longitude)!)
+        // Updating current instruction
+        if self.route.steps.count > self.curr {
+            let poly = self.route.steps[self.curr].polyline
+            var coordsPointer = UnsafeMutablePointer<CLLocationCoordinate2D>.allocate(capacity: poly.pointCount)
+            poly.getCoordinates(coordsPointer, range: NSMakeRange(0, poly.pointCount))
+            var coords: [CLLocationCoordinate2D] = []
+            for i in 0..<poly.pointCount {
+                coords.append(coordsPointer[i])
+            }
+            coordsPointer.deallocate(capacity: poly.pointCount)
+            let point = coords[0]
+            let location2 = CLLocation(latitude: point.latitude, longitude: point.longitude)
+            if  Int((location?.distance(from: location2))!) < 15 {
+                self.madefar = true
+            } else if madefar {
+                let synthesizer = AVSpeechSynthesizer()
+                let utterance = AVSpeechUtterance(string: self.instructionsText.title!)
+                utterance.rate = 0.5
+                synthesizer.speak(utterance)
+                self.instructionsText.title = self.route.steps[self.curr].instructions
+                curr+=1
+                self.madefar = false
+            }
+        }
+        
+        // Announcing Danger Zones
+        for i in 0..<(zonesOnRoute.count) {
+            let zone = zonesOnRoute[i]
+            let zonePos = CLLocation(latitude: zone.latitude, longitude: zone.longitude)
+            if Int((location?.distance(from: zonePos))!) < 152  && !zonesOnRouteClosing[i]{
+                zonesOnRouteClosing[i] = true
+                let synthesizer = AVSpeechSynthesizer()
+                let utterance = AVSpeechUtterance(string: "Danger Zone in 500 feet")
+                utterance.rate = 0.5
+                synthesizer.speak(utterance)
             }
         }
     }
 
-    // authorization status
-    func locationManager(manager: CLLocationManager,
-                         didChangeAuthorizationStatus status: CLAuthorizationStatus) {
-        var shouldIAllow = false
-        var location_status = ""
-        switch status {
-        case CLAuthorizationStatus.restricted:
-            location_status = "Restricted Access to location"
-        case CLAuthorizationStatus.denied:
-            location_status = "User denied access to location"
-        case CLAuthorizationStatus.notDetermined:
-            location_status = "Status not determined"
-        default:
-            location_status = "Allowed to location Access"
-            shouldIAllow = true
-        }
-        NotificationCenter.default.post(name: NSNotification.Name(rawValue: "LabelHasbeenUpdated"), object: nil)
-        if (shouldIAllow == true) {
-            NSLog("Location to Allowed")
-            // Start location services
-            manager.startMonitoringSignificantLocationChanges()
-            locationManager.startMonitoringSignificantLocationChanges()
-        } else {
-            NSLog("Denied access: \(location_status)")
-        }
-    }
     }
     
     
