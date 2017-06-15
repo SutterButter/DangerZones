@@ -115,7 +115,7 @@ class ViewController: UIViewController, MKMapViewDelegate {
         mapView.delegate = self
         
         // Adding the source and destination locations
-        let sourceLocation = CLLocationCoordinate2D(latitude: 40.877243, longitude: -81.410538)
+        let sourceLocation = CLLocationCoordinate2D(latitude: 40.8761779870838, longitude: -81.4120410013506)
         let destinationLocation = CLLocationCoordinate2D(latitude: 40.848874, longitude: -81.433845)
         
         // Placemarks
@@ -166,7 +166,7 @@ class ViewController: UIViewController, MKMapViewDelegate {
             self.route = routes[0]
             self.alternate1 = routes[1]
             self.alternate2 = routes[2]
-            
+            print("here")
             let score0 = self.getDangerScore(route: self.route)
             let score1 = self.getDangerScore(route: self.alternate1)
             let score2 = self.getDangerScore(route: self.alternate2)
@@ -174,7 +174,7 @@ class ViewController: UIViewController, MKMapViewDelegate {
             
             if score0 <= score1 {
                 if score0 <= score2 {
-                    //Route = route
+                    self.safestRoute = self.route
                 } else {
                     self.safestRoute = self.alternate2
                 }
@@ -186,13 +186,13 @@ class ViewController: UIViewController, MKMapViewDelegate {
                 }
             }
             
-            self.mapView.add((self.route.polyline), level: MKOverlayLevel.aboveRoads)
+            self.mapView.add((self.safestRoute.polyline), level: MKOverlayLevel.aboveRoads)
             //self.mapView.add((self.alternate1.polyline), level: MKOverlayLevel.aboveRoads)
             //self.mapView.add((self.alternate2.polyline), level: MKOverlayLevel.aboveRoads)
 
             
             // Getting the boundingMapObject and creating a region from it
-            let rect = self.route.polyline.boundingMapRect
+            let rect = self.safestRoute.polyline.boundingMapRect
             var region = MKCoordinateRegionForMapRect(rect)
             
             // Enlarging the region
@@ -204,10 +204,10 @@ class ViewController: UIViewController, MKMapViewDelegate {
             
             // Show the current locatoin
             self.mapView.showsUserLocation = true
-            self.getDangerZones(route: self.route)
+            self.getDangerZones(route: self.safestRoute)
             
             // Updating current instruction
-            self.instructionsText.title = self.route.steps[0].instructions
+            self.instructionsText.title = self.safestRoute.steps[0].instructions
         }
     }
     override func didReceiveMemoryWarning() {
@@ -218,7 +218,7 @@ class ViewController: UIViewController, MKMapViewDelegate {
     // Rendering the overlays
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
         //Rendering the main line
-        if overlay as? MKPolyline  == self.route.polyline {
+        if overlay as? MKPolyline  == self.safestRoute.polyline {
             let renderer = MKPolylineRenderer(overlay: overlay)
             renderer.strokeColor = UIColor(hue: 0.5694, saturation: 0.67, brightness: 0.97, alpha: 1.0) /* #51b2f7 */
 
@@ -352,8 +352,8 @@ extension ViewController: CLLocationManagerDelegate {
         //
         self.center = CLLocationCoordinate2D(latitude: (location?.coordinate.latitude)!, longitude: (location?.coordinate.longitude)!)
         // Updating current instruction
-        if self.route.steps.count > self.curr {
-            let poly = self.route.steps[self.curr].polyline
+        if self.safestRoute.steps.count > self.curr {
+            let poly = self.safestRoute.steps[self.curr].polyline
             var coordsPointer = UnsafeMutablePointer<CLLocationCoordinate2D>.allocate(capacity: poly.pointCount)
             poly.getCoordinates(coordsPointer, range: NSMakeRange(0, poly.pointCount))
             var coords: [CLLocationCoordinate2D] = []
@@ -372,25 +372,25 @@ extension ViewController: CLLocationManagerDelegate {
                 }
             } else {
                 if (!madefar) {
-                    var distance=Int(self.route.steps[self.curr].distance * 3.28)
+                    var distance=Int(self.safestRoute.steps[self.curr].distance * 3.28)
                     var utterance = AVSpeechUtterance()
                     if distance > 5280 {
                         distance = distance / 528
                         let newDistance = Double(distance)/10.0
-                        utterance = AVSpeechUtterance(string: self.route.steps[self.curr].instructions + " in " + String(newDistance) + " miles")
+                        utterance = AVSpeechUtterance(string: "In " + String(newDistance) + " miles, " + self.safestRoute.steps[self.curr].instructions )
                     } else if distance > 528 {
                         distance = (distance / 528)
-                        utterance = AVSpeechUtterance(string: self.route.steps[self.curr].instructions + " in point" + String(distance) + " miles")
+                        utterance = AVSpeechUtterance(string: "In point " + String(distance) + " miles, " + self.safestRoute.steps[self.curr].instructions)
 
                     } else if distance > 100 {
                         distance = (distance / 100) * 100
-                        utterance = AVSpeechUtterance(string: self.route.steps[self.curr].instructions + " in " + String(distance) + " feet")
+                        utterance = AVSpeechUtterance(string:  "In " + String(distance) + " feet, " + self.safestRoute.steps[self.curr].instructions)
                     } else {
-                        utterance = AVSpeechUtterance(string: self.route.steps[self.curr].instructions + " in " + String(distance) + " feet")
+                        utterance = AVSpeechUtterance(string: "In " + String(distance) + " feet, " + self.safestRoute.steps[self.curr].instructions)
                     }
                     utterance.rate = 0.5
                     self.synthesizer.speak(utterance)
-                    self.instructionsText.title = self.route.steps[self.curr].instructions
+                    self.instructionsText.title = self.safestRoute.steps[self.curr].instructions
                     self.madefar = true
                     curr+=1
                 }
