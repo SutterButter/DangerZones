@@ -27,6 +27,8 @@ class ViewController: UIViewController, MKMapViewDelegate {
     var madefar = false
     var zonesOnRoute:[CLLocationCoordinate2D] = []
     var zonesOnRouteClosing:[Bool] = []
+    let synthesizer = AVSpeechSynthesizer()
+    var lastDangerZone = CLLocation(latitude: 0,longitude: 0)
     
     let dangers = [[40.847997130434784,-81.4343505652174,25.0],
                    [40.85489372222222,-81.43209894444445,21.0],
@@ -97,7 +99,9 @@ class ViewController: UIViewController, MKMapViewDelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        let utterance = AVSpeechUtterance(string: "Proceed to the route")
+        utterance.rate = 0.5
+        self.synthesizer.speak(utterance)
         //Setting up the location manager
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
@@ -164,11 +168,8 @@ class ViewController: UIViewController, MKMapViewDelegate {
             self.alternate2 = routes[2]
             
             let score0 = self.getDangerScore(route: self.route)
-            print(score0)
             let score1 = self.getDangerScore(route: self.alternate1)
-            print(score1)
             let score2 = self.getDangerScore(route: self.alternate2)
-            print(score2)
             
             
             if score0 <= score1 {
@@ -186,8 +187,8 @@ class ViewController: UIViewController, MKMapViewDelegate {
             }
             
             self.mapView.add((self.route.polyline), level: MKOverlayLevel.aboveRoads)
-            self.mapView.add((self.alternate1.polyline), level: MKOverlayLevel.aboveRoads)
-            self.mapView.add((self.alternate2.polyline), level: MKOverlayLevel.aboveRoads)
+            //self.mapView.add((self.alternate1.polyline), level: MKOverlayLevel.aboveRoads)
+            //self.mapView.add((self.alternate2.polyline), level: MKOverlayLevel.aboveRoads)
 
             
             // Getting the boundingMapObject and creating a region from it
@@ -362,16 +363,37 @@ extension ViewController: CLLocationManagerDelegate {
             coordsPointer.deallocate(capacity: poly.pointCount)
             let point = coords[0]
             let location2 = CLLocation(latitude: point.latitude, longitude: point.longitude)
-            if  Int((location?.distance(from: location2))!) < 15 {
-                self.madefar = true
-            } else if madefar {
-                let synthesizer = AVSpeechSynthesizer()
-                let utterance = AVSpeechUtterance(string: self.instructionsText.title!)
-                utterance.rate = 0.5
-                synthesizer.speak(utterance)
-                self.instructionsText.title = self.route.steps[self.curr].instructions
-                curr+=1
-                self.madefar = false
+            if  Int((location?.distance(from: location2))!) < 50 {
+                if (madefar) {
+                    let utterance = AVSpeechUtterance(string: self.instructionsText.title!)
+                    utterance.rate = 0.5
+                    self.synthesizer.speak(utterance)
+                    self.madefar = false
+                }
+            } else {
+                if (!madefar) {
+                    var distance=Int(self.route.steps[self.curr].distance * 3.28)
+                    var utterance = AVSpeechUtterance()
+                    if distance > 5280 {
+                        distance = distance / 528
+                        let newDistance = Double(distance)/10.0
+                        utterance = AVSpeechUtterance(string: self.route.steps[self.curr].instructions + " in " + String(newDistance) + " miles")
+                    } else if distance > 528 {
+                        distance = (distance / 528)
+                        utterance = AVSpeechUtterance(string: self.route.steps[self.curr].instructions + " in point" + String(distance) + " miles")
+
+                    } else if distance > 100 {
+                        distance = (distance / 100) * 100
+                        utterance = AVSpeechUtterance(string: self.route.steps[self.curr].instructions + " in " + String(distance) + " feet")
+                    } else {
+                        utterance = AVSpeechUtterance(string: self.route.steps[self.curr].instructions + " in " + String(distance) + " feet")
+                    }
+                    utterance.rate = 0.5
+                    self.synthesizer.speak(utterance)
+                    self.instructionsText.title = self.route.steps[self.curr].instructions
+                    self.madefar = true
+                    curr+=1
+                }
             }
         }
         
@@ -379,12 +401,14 @@ extension ViewController: CLLocationManagerDelegate {
         for i in 0..<(zonesOnRoute.count) {
             let zone = zonesOnRoute[i]
             let zonePos = CLLocation(latitude: zone.latitude, longitude: zone.longitude)
-            if Int((location?.distance(from: zonePos))!) < 152  && !zonesOnRouteClosing[i]{
-                zonesOnRouteClosing[i] = true
-                let synthesizer = AVSpeechSynthesizer()
-                let utterance = AVSpeechUtterance(string: "Danger Zone in 500 feet")
-                utterance.rate = 0.5
-                synthesizer.speak(utterance)
+            if Int((location?.distance(from: zonePos))!) < 200  && !zonesOnRouteClosing[i]{
+                if Int((zonePos.distance(from: self.lastDangerZone))) > 200 {
+                        self.lastDangerZone = zonePos
+                        zonesOnRouteClosing[i] = true
+                        let utterance = AVSpeechUtterance(string: "Danger Zone in 500 feet")
+                        utterance.rate = 0.5
+                        self.synthesizer.speak(utterance)
+                }
             }
         }
     }
