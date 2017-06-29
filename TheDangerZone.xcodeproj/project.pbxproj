@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4FE1ABF81F05831E00E9A6CC /* LocationSearchTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE1ABF71F05831E00E9A6CC /* LocationSearchTable.swift */; };
 		4FF0CA251EF16207005AE435 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FF0CA241EF16207005AE435 /* AppDelegate.swift */; };
 		4FF0CA271EF16207005AE435 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FF0CA261EF16207005AE435 /* ViewController.swift */; };
 		4FF0CA2A1EF16207005AE435 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4FF0CA281EF16207005AE435 /* Main.storyboard */; };
@@ -36,6 +37,7 @@
 
 /* Begin PBXFileReference section */
 		4F30611D1EF1CDC70073A5EA /* Location.gpx */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = Location.gpx; sourceTree = "<group>"; };
+		4FE1ABF71F05831E00E9A6CC /* LocationSearchTable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LocationSearchTable.swift; sourceTree = "<group>"; };
 		4FF0CA211EF16207005AE435 /* TheDangerZone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TheDangerZone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FF0CA241EF16207005AE435 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		4FF0CA261EF16207005AE435 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -103,6 +105,7 @@
 				4FF0CA241EF16207005AE435 /* AppDelegate.swift */,
 				4FF0CA261EF16207005AE435 /* ViewController.swift */,
 				4FF0CA281EF16207005AE435 /* Main.storyboard */,
+				4FE1ABF71F05831E00E9A6CC /* LocationSearchTable.swift */,
 				4FF0CA2E1EF16207005AE435 /* Assets.xcassets */,
 				4FF0CA301EF16207005AE435 /* LaunchScreen.storyboard */,
 				4F30611D1EF1CDC70073A5EA /* Location.gpx */,
@@ -270,6 +273,7 @@
 				4FF0CA2D1EF16207005AE435 /* TheDangerZone.xcdatamodeld in Sources */,
 				4FF0CA271EF16207005AE435 /* ViewController.swift in Sources */,
 				4FF0CA251EF16207005AE435 /* AppDelegate.swift in Sources */,
+				4FE1ABF81F05831E00E9A6CC /* LocationSearchTable.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

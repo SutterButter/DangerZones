@@ -1,4 +1,5 @@
 //
+
 //  ViewController.swift
 //  TheDangerZone
 //
@@ -10,14 +11,22 @@ import UIKit
 import MapKit
 import AVFoundation
 
+
 class ViewController: UIViewController, MKMapViewDelegate {
     
     //Declaring outlets for the map and text directions
     @IBOutlet weak var mapView: MKMapView!
     @IBOutlet weak var instructionsText: UINavigationItem!
     
+    
+    
     // Declaring the location manager
     var locationManager = CLLocationManager()
+    
+    // Setting up search autocomplete
+    var resultSearchController:UISearchController? = nil
+
+    
     
     // Declaring routes
     var route :MKRoute = MKRoute()
@@ -139,8 +148,31 @@ class ViewController: UIViewController, MKMapViewDelegate {
         locationManager.startMonitoringSignificantLocationChanges()
         locationManager.startUpdatingLocation()
         
+        
+        // Setting up search controller and table
+        let locationSearchTable = storyboard!.instantiateViewController(withIdentifier: "LocationSearchTable") as! LocationSearchTable
+        resultSearchController = UISearchController(searchResultsController: locationSearchTable)
+        resultSearchController?.searchResultsUpdater = locationSearchTable
+        
+        // Displaying the search bar
+        let searchBar = resultSearchController!.searchBar
+        searchBar.sizeToFit()
+        searchBar.placeholder = "Search for destination"
+        navigationItem.titleView = resultSearchController?.searchBar
+        resultSearchController?.hidesNavigationBarDuringPresentation = false
+        resultSearchController?.dimsBackgroundDuringPresentation = true
+        definesPresentationContext = true
+        
+        
         // Setting the Map Delegate
         mapView.delegate = self
+        
+        
+        // Setting location search Table's map view to be the same
+        locationSearchTable.mapView = self.mapView
+        
+        
+        
         
         // Adding the source and destination locations
         let sourceLocation = CLLocationCoordinate2D(latitude: 40.8761779870838, longitude: -81.4120410013506)
@@ -189,11 +221,82 @@ class ViewController: UIViewController, MKMapViewDelegate {
                 return
             }
             
+            
+            let routes = response.routes
+            var min = Double()
+            var firstTest = true
+            var mapOfRoutes = Dictionary<Double, MKRoute>()
+            for mapRoute in routes {
+                let score = self.getDangerScore(route: mapRoute)
+                if firstTest {
+                    min = score
+                    firstTest = false
+                }
+                if score < min {
+                    min = score
+                }
+                if mapOfRoutes[score] == nil {
+                    mapOfRoutes[score] = mapRoute
+                }
+            }
+            self.safestRoute = mapOfRoutes[min]!
+            
+            
+            
+            
+            
+            /*
+            if routes.count == 2 {
+            if routes.count > 0 {
+                self.route = routes[0]
+            } else {
+                print("Error not enough routes 0")
+            }
+            if routes.count > 1 {
+                self.alternate1 = routes[1]
+            } else {
+                print("Error not enough routes 1")
+            }
+            
+            let score0 = self.getDangerScore(route: self.route)
+            let score1 = self.getDangerScore(route: self.alternate1)
+            
+            if score0 <= score1 {
+                self.safestRoute = self.route
+            } else {
+                self.safestRoute = self.alternate1
+            }
+            }
+            
+            
+            
+            
+            
+            */
+            
+            
+            
+            
+            
+            /*
+            
             // Getting three potential routes
             let routes = response.routes
-            self.route = routes[0]
-            self.alternate1 = routes[1]
-            self.alternate2 = routes[2]
+            if routes.count > 0 {
+                self.route = routes[0]
+            } else {
+                print("Error not enough routes 0")
+            }
+            if routes.count > 1 {
+                self.alternate1 = routes[1]
+            } else {
+                print("Error not enough routes 1")
+            }
+            if routes.count > 2 {
+                self.alternate2 = routes[2]
+            } else {
+                print("Error not enough routes 2")
+            }
             
             // Getting the Danger Score for each of the routes
             let score0 = self.getDangerScore(route: self.route)
@@ -215,6 +318,23 @@ class ViewController: UIViewController, MKMapViewDelegate {
                 }
             }
             
+            */
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+ 
+ 
             // Adding the route to the map
             self.mapView.add((self.safestRoute.polyline), level: MKOverlayLevel.aboveRoads)
             
@@ -237,6 +357,8 @@ class ViewController: UIViewController, MKMapViewDelegate {
             
             // Updating current driving instruction
             self.instructionsText.title = self.safestRoute.steps[0].instructions
+            
+            
         }
     }
     
@@ -271,7 +393,7 @@ class ViewController: UIViewController, MKMapViewDelegate {
             //Rendering the Danger Zone circles
         else {
             let circleRenderer = MKCircleRenderer(overlay: overlay)
-            circleRenderer.strokeColor = UIColor(red:0.93, green:0.65, blue:0.65, alpha:0.3)
+            //circleRenderer.strokeColor = UIColor(red:0.93, green:0.65, blue:0.65, alpha:0.3)
             circleRenderer.fillColor = UIColor(red:0.93, green:0.65, blue:0.65, alpha:0.7)
             return circleRenderer;
         }
@@ -319,9 +441,11 @@ class ViewController: UIViewController, MKMapViewDelegate {
                     let points = [prevCoord, point]
                     let testPoly = MKPolyline(coordinates: points, count: points.count)
                     if testPoly.intersects(curRect){
-                        self.mapView.add(MKCircle(center: pos, radius: 50))
-                        zonesOnRoute.append(pos)
-                        zonesOnRouteClosing.append(false)
+                        if !zonesOnRoute.contains(where: { $0.latitude == pos.latitude && $0.longitude == pos.longitude }){
+                            self.mapView.add(MKCircle(center: pos, radius: 100))
+                            zonesOnRoute.append(pos)
+                            zonesOnRouteClosing.append(false)
+                        }
                     }
                 } else {
                     first = false
@@ -367,7 +491,7 @@ class ViewController: UIViewController, MKMapViewDelegate {
             let hDist = MKMetersBetweenMapPoints(mpTopLeft, mpTopRight)
             let converter = hDist/width
             
-            //Checking if each zone is on any of the route sections
+            // Checking if each zone is on any of the route sections
             for point in coords {
                 let curRect = MKMapRect(origin: MKMapPointForCoordinate(pos), size: MKMapSize(width: (100 / converter),height: (100 / converter)))
                 if !first {
@@ -386,12 +510,6 @@ class ViewController: UIViewController, MKMapViewDelegate {
         return score
     }
 }
-
-
-
-
-
-
 
 
 
@@ -446,7 +564,7 @@ extension ViewController: CLLocationManagerDelegate {
                     self.madefar = false
                 }
             }
-            // If the current location is now more than 50 meters away from the last step
+                // If the current location is now more than 50 meters away from the last step
             else if (!madefar) {
                 
                 // Converting the distance from meters to feet
