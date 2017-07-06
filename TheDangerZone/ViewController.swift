@@ -183,11 +183,26 @@ class ViewController: UIViewController {
         //Zoom to user location
         let noLocation = locationManager.location!.coordinate
         let viewRegion = MKCoordinateRegionMakeWithDistance(noLocation, 1000, 1000)
-        self.mapView.setRegion(viewRegion, animated: false)
+        self.mapView.setRegion(viewRegion, animated: true)
     }
     
     
-    
+    func quitClicked() {
+        self.navigationItem.titleView = resultSearchController?.searchBar
+        self.navigationItem.setLeftBarButton(nil, animated: true)
+        let annotations = self.mapView.annotations
+        let overlays = self.mapView.overlays
+        self.mapView.removeOverlays(overlays)
+        
+        self.mapView.removeAnnotations(annotations)
+        self.zonesOnRoute = []
+        self.zonesOnRouteClosing = []
+        
+        //Zoom to user location
+        let noLocation = locationManager.location!.coordinate
+        let viewRegion = MKCoordinateRegionMakeWithDistance(noLocation, 1000, 1000)
+        self.mapView.setRegion(viewRegion, animated: true)
+    }
     
     
     func getDirections(){
@@ -200,8 +215,9 @@ class ViewController: UIViewController {
             self.zonesOnRouteClosing = []
             
             self.navigationItem.titleView = nil
+            let cancelButton = UIBarButtonItem(title: "Quit", style: .plain, target: self, action: Selector("quitClicked"))
+            self.navigationItem.setLeftBarButton(cancelButton, animated: true)
             
-            //self.view.bringSubviewToFront(instructionsText)
             let mapItem = MKMapItem(placemark: selectedPin)
             
             
@@ -234,7 +250,7 @@ class ViewController: UIViewController {
             }
             
             // Adding the annotations to the map
-            self.mapView.showAnnotations([destinationAnnotation], animated: true)
+            self.mapView.addAnnotation(destinationAnnotation)
             
             // Requesting the directions
             let directionRequest = MKDirectionsRequest()
@@ -576,7 +592,8 @@ extension ViewController: HandleMapSearch {
             annotation.subtitle = (city + ", " + state)
         }
         mapView.addAnnotation(annotation)
-        let span = MKCoordinateSpanMake(0.05, 0.05)
+        
+        let span = MKCoordinateSpanMake(0.01, 0.01)
         let region = MKCoordinateRegionMake(placemark.coordinate, span)
         mapView.setRegion(region, animated: true)
     }
