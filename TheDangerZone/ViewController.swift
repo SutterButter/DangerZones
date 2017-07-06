@@ -12,20 +12,26 @@ import MapKit
 import AVFoundation
 
 
-class ViewController: UIViewController, MKMapViewDelegate {
+protocol HandleMapSearch {
+    func dropPinZoomIn(placemark:MKPlacemark)
+}
+
+class ViewController: UIViewController {
     
     //Declaring outlets for the map and text directions
     @IBOutlet weak var mapView: MKMapView!
     @IBOutlet weak var instructionsText: UINavigationItem!
     
-    
+    var locationSearchTable:LocationSearchTable!
     
     // Declaring the location manager
     var locationManager = CLLocationManager()
     
     // Setting up search autocomplete
     var resultSearchController:UISearchController? = nil
+    
 
+    var selectedPin:MKPlacemark? = nil
     
     
     // Declaring routes
@@ -135,9 +141,7 @@ class ViewController: UIViewController, MKMapViewDelegate {
     override func viewDidLoad() {
         //Speaking the initial "proceed to the route"
         super.viewDidLoad()
-        let utterance = AVSpeechUtterance(string: "Proceed to the route")
-        utterance.rate = 0.5
-        self.synthesizer.speak(utterance)
+        
         
         //Setting up the location manager
         locationManager.delegate = self
@@ -150,7 +154,7 @@ class ViewController: UIViewController, MKMapViewDelegate {
         
         
         // Setting up search controller and table
-        let locationSearchTable = storyboard!.instantiateViewController(withIdentifier: "LocationSearchTable") as! LocationSearchTable
+        locationSearchTable = storyboard!.instantiateViewController(withIdentifier: "LocationSearchTable") as! LocationSearchTable
         resultSearchController = UISearchController(searchResultsController: locationSearchTable)
         resultSearchController?.searchResultsUpdater = locationSearchTable
         
@@ -171,202 +175,134 @@ class ViewController: UIViewController, MKMapViewDelegate {
         // Setting location search Table's map view to be the same
         locationSearchTable.mapView = self.mapView
         
+        locationSearchTable.handleMapSearchDelegate = self
         
+        // Show the current location
+        self.mapView.showsUserLocation = true
         
-        
-        // Adding the source and destination locations
-        let sourceLocation = CLLocationCoordinate2D(latitude: 40.8761779870838, longitude: -81.4120410013506)
-        let destinationLocation = CLLocationCoordinate2D(latitude: 40.848874, longitude: -81.433845)
-        
-        // Placemarks
-        let sourcePlacemark = MKPlacemark(coordinate: sourceLocation, addressDictionary: nil)
-        let destinationPlacemark = MKPlacemark(coordinate: destinationLocation, addressDictionary: nil)
-        
-        // Map Items
-        let sourceMapItem = MKMapItem(placemark: sourcePlacemark)
-        let destinationMapItem = MKMapItem(placemark: destinationPlacemark)
-        
-        // Annotations
-        let sourceAnnotation = MKPointAnnotation()
-        sourceAnnotation.title = "Start Location"
-        if let location = sourcePlacemark.location {
-            sourceAnnotation.coordinate = location.coordinate
-        }
-        let destinationAnnotation = MKPointAnnotation()
-        destinationAnnotation.title = "Destination"
-        if let location = destinationPlacemark.location {
-            destinationAnnotation.coordinate = location.coordinate
-        }
-        
-        // Adding the annotations to the map
-        self.mapView.showAnnotations([sourceAnnotation,destinationAnnotation], animated: true )
-        
-        // Requesting the directions
-        let directionRequest = MKDirectionsRequest()
-        directionRequest.source = sourceMapItem
-        directionRequest.destination = destinationMapItem
-        directionRequest.transportType = .automobile
-        directionRequest.requestsAlternateRoutes = true
-        let directions = MKDirections(request: directionRequest)
-        
-        // Displaying the initial directions and instructions
-        directions.calculate {
-            (response, error) -> Void in
-            
-            // Checking for error
-            guard let response = response else {
-                if let error = error {
-                    print("Error: \(error)")
-                }
-                return
-            }
-            
-            
-            let routes = response.routes
-            var min = Double()
-            var firstTest = true
-            var mapOfRoutes = Dictionary<Double, MKRoute>()
-            for mapRoute in routes {
-                let score = self.getDangerScore(route: mapRoute)
-                if firstTest {
-                    min = score
-                    firstTest = false
-                }
-                if score < min {
-                    min = score
-                }
-                if mapOfRoutes[score] == nil {
-                    mapOfRoutes[score] = mapRoute
-                }
-            }
-            self.safestRoute = mapOfRoutes[min]!
-            
-            
-            
-            
-            
-            /*
-            if routes.count == 2 {
-            if routes.count > 0 {
-                self.route = routes[0]
-            } else {
-                print("Error not enough routes 0")
-            }
-            if routes.count > 1 {
-                self.alternate1 = routes[1]
-            } else {
-                print("Error not enough routes 1")
-            }
-            
-            let score0 = self.getDangerScore(route: self.route)
-            let score1 = self.getDangerScore(route: self.alternate1)
-            
-            if score0 <= score1 {
-                self.safestRoute = self.route
-            } else {
-                self.safestRoute = self.alternate1
-            }
-            }
-            
-            
-            
-            
-            
-            */
-            
-            
-            
-            
-            
-            /*
-            
-            // Getting three potential routes
-            let routes = response.routes
-            if routes.count > 0 {
-                self.route = routes[0]
-            } else {
-                print("Error not enough routes 0")
-            }
-            if routes.count > 1 {
-                self.alternate1 = routes[1]
-            } else {
-                print("Error not enough routes 1")
-            }
-            if routes.count > 2 {
-                self.alternate2 = routes[2]
-            } else {
-                print("Error not enough routes 2")
-            }
-            
-            // Getting the Danger Score for each of the routes
-            let score0 = self.getDangerScore(route: self.route)
-            let score1 = self.getDangerScore(route: self.alternate1)
-            let score2 = self.getDangerScore(route: self.alternate2)
-            
-            //Picking the safest route based on the score
-            if score0 <= score1 {
-                if score0 <= score2 {
-                    self.safestRoute = self.route
-                } else {
-                    self.safestRoute = self.alternate2
-                }
-            } else {
-                if score1 <= score2 {
-                    self.safestRoute = self.alternate1
-                } else {
-                    self.safestRoute = self.alternate2
-                }
-            }
-            
-            */
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
- 
- 
-            // Adding the route to the map
-            self.mapView.add((self.safestRoute.polyline), level: MKOverlayLevel.aboveRoads)
-            
-            // Getting the boundingMapObject and creating a region from it
-            let rect = self.safestRoute.polyline.boundingMapRect
-            var region = MKCoordinateRegionForMapRect(rect)
-            
-            // Enlarging the region
-            region.span.latitudeDelta *= 1.2
-            region.span.longitudeDelta *= 1.2
-            
-            // Setting the region (this will set what region the app displays on the map)
-            self.mapView.setRegion(region, animated: true)
-            
-            // Show the current location
-            self.mapView.showsUserLocation = true
-            
-            // Adding danger zones to the map that are along the route
-            self.getDangerZones(route: self.safestRoute)
-            
-            // Updating current driving instruction
-            self.instructionsText.title = self.safestRoute.steps[0].instructions
-            
-            
-        }
+        //Zoom to user location
+        let noLocation = locationManager.location!.coordinate
+        let viewRegion = MKCoordinateRegionMakeWithDistance(noLocation, 1000, 1000)
+        self.mapView.setRegion(viewRegion, animated: false)
     }
     
     
     
     
     
-    
+    func getDirections(){
+        if let selectedPin = selectedPin {
+            
+            //Removing annotations and clearing arrays
+            let annotations = self.mapView.annotations
+            self.mapView.removeAnnotations(annotations)
+            self.zonesOnRoute = []
+            self.zonesOnRouteClosing = []
+            
+            self.navigationItem.titleView = nil
+            
+            //self.view.bringSubviewToFront(instructionsText)
+            let mapItem = MKMapItem(placemark: selectedPin)
+            
+            
+            let utterance = AVSpeechUtterance(string: "Proceed to the route")
+            utterance.rate = 0.5
+            self.synthesizer.speak(utterance)
+            
+            
+            
+            // Adding the source and destination locations
+            let sourceLocation = locationManager.location!.coordinate
+            //latitude: 40.8761779870838, longitude: -81.4120410013506
+            
+            
+            let destinationLocation = selectedPin.coordinate
+            
+            // Placemarks
+            let sourcePlacemark = MKPlacemark(coordinate: sourceLocation, addressDictionary: nil)
+            let destinationPlacemark = MKPlacemark(coordinate: destinationLocation, addressDictionary: nil)
+            
+            // Map Items
+            let sourceMapItem = MKMapItem(placemark: sourcePlacemark)
+            let destinationMapItem = MKMapItem(placemark: destinationPlacemark)
+            
+
+            let destinationAnnotation = MKPointAnnotation()
+            destinationAnnotation.title = "Destination"
+            if let location = destinationPlacemark.location {
+                destinationAnnotation.coordinate = location.coordinate
+            }
+            
+            // Adding the annotations to the map
+            self.mapView.showAnnotations([destinationAnnotation], animated: true)
+            
+            // Requesting the directions
+            let directionRequest = MKDirectionsRequest()
+            directionRequest.source = sourceMapItem
+            directionRequest.destination = destinationMapItem
+            directionRequest.transportType = .automobile
+            directionRequest.requestsAlternateRoutes = true
+            let directions = MKDirections(request: directionRequest)
+            
+            // Displaying the initial directions and instructions
+            directions.calculate {
+                (response, error) -> Void in
+                
+                // Checking for error
+                guard let response = response else {
+                    if let error = error {
+                        print("Error: \(error)")
+                    }
+                    return
+                }
+                
+                
+                let routes = response.routes
+                var min = Double()
+                var firstTest = true
+                var mapOfRoutes = Dictionary<Double, MKRoute>()
+                for mapRoute in routes {
+                    let score = self.getDangerScore(route: mapRoute)
+                    if firstTest {
+                        min = score
+                        firstTest = false
+                    }
+                    if score < min {
+                        min = score
+                    }
+                    if mapOfRoutes[score] == nil {
+                        mapOfRoutes[score] = mapRoute
+                    }
+                }
+                self.safestRoute = mapOfRoutes[min]!
+ 
+                // Adding the route to the map
+                self.mapView.add((self.safestRoute.polyline), level: MKOverlayLevel.aboveRoads)
+                
+                // Getting the boundingMapObject and creating a region from it
+                let rect = self.safestRoute.polyline.boundingMapRect
+                var region = MKCoordinateRegionForMapRect(rect)
+                
+                // Enlarging the region
+                region.span.latitudeDelta *= 1.2
+                region.span.longitudeDelta *= 1.2
+                
+                // Setting the region (this will set what region the app displays on the map)
+                self.mapView.setRegion(region, animated: true)
+                
+                
+                
+                // Adding danger zones to the map that are along the route
+                self.getDangerZones(route: self.safestRoute)
+                
+                // Updating current driving instruction
+                self.instructionsText.title = self.safestRoute.steps[0].instructions
+                
+                
+            }
+
+        }
+    }
     
     
     override func didReceiveMemoryWarning() {
@@ -626,3 +562,44 @@ extension ViewController: CLLocationManagerDelegate {
 
 
 
+extension ViewController: HandleMapSearch {
+    func dropPinZoomIn(placemark:MKPlacemark){
+        // cache the pin
+        selectedPin = placemark
+        // clear existing pins
+        mapView.removeAnnotations(mapView.annotations)
+        let annotation = MKPointAnnotation()
+        annotation.coordinate = placemark.coordinate
+        annotation.title = placemark.name
+        if let city = placemark.locality,
+            let state = placemark.administrativeArea {
+            annotation.subtitle = (city + ", " + state)
+        }
+        mapView.addAnnotation(annotation)
+        let span = MKCoordinateSpanMake(0.05, 0.05)
+        let region = MKCoordinateRegionMake(placemark.coordinate, span)
+        mapView.setRegion(region, animated: true)
+    }
+}
+
+
+extension ViewController : MKMapViewDelegate {
+    func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView?{
+        if annotation is MKUserLocation {
+            //return nil so map view draws "blue dot" for standard user location
+            return nil
+        }
+        let overlays = self.mapView.overlays
+        self.mapView.removeOverlays(overlays)
+        
+        let pinView = MKPinAnnotationView()
+        pinView.pinTintColor = UIColor.red
+        pinView.canShowCallout = true
+        let smallSquare = CGSize(width: 30, height: 30)
+        let button = UIButton(frame: CGRect(origin: CGPoint(), size: smallSquare))
+        button.setBackgroundImage(UIImage(named: "car"), for: .normal)
+        button.addTarget(self, action: Selector("getDirections"), for: .touchUpInside)
+        pinView.leftCalloutAccessoryView = button
+        return pinView
+    }
+}
