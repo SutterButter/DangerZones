@@ -47,8 +47,7 @@ ran it through a python program that ran through the crash data and pulled out
 each of the fields into variables. The next step was to take the crash
 locations and start to figure out where there seemed to be heavy amounts of
 crashes in a small area. The obvious solution to doing this was to use a
-clustering algorithm. I settled on using SciKitLearn's DBSCAN algorithm because
-the data determines the clusters as opposed to something like a k-means
+clustering algorithm. I settled on using SciKitLearn's Density-Based Spatial Clustering of Applications with Noise (DBSCAN) algorithm because the data determines the clusters as opposed to something like a k-means
 clustering algorithm where you have to specify the number of clusters. This
 DBSCAN algorithm took in a maximum distance between points and the minimum
 number of points to be considered a cluster, I used 40 meters and 10 points
