@@ -1,5 +1,5 @@
 # DangerZones
-A navigation app (iOS) that provides safe, turn by turn directions, and warns users of upcoming dangerous portions of road.
+A navigation app (iOS) that provides safe, turn by turn directions, and warns users when they approach dangerous portions of road.
 ## Resources: 
 [Wiki](https://github.com/SutterButter/DangerZones/wiki)
 ## Usage: 
